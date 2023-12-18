@@ -1,9 +1,12 @@
-use std::io::{self, Write};
-use std::process::exit;
 use crate::console::clear_console;
-use crate::console::set_cursor_position;
+
+use std::process::exit;
+use std::io::{self, Write};
 use crossterm::{
-    event::{KeyCode, KeyEvent, Event, KeyModifiers, read},
+    ExecutableCommand,
+    event::{self, Event, KeyCode},
+    terminal::{Clear, ClearType},
+    cursor::MoveTo
 };
 
 pub struct Menu {
@@ -22,7 +25,7 @@ impl Menu {
     pub fn initialize_main_menu(&self) {
         draw_title_screen();
 
-        let current_line = self.initial_line + 18;
+        let current_line = self.initial_line + 21;
         self.draw_game_options(current_line);
     }
 
@@ -44,79 +47,56 @@ impl Menu {
     }
 
     fn draw_game_options(&self, mut current_line: u16) {
-        let num_options = self.options.len();
+        let num_options = self.options.len()  as u16;
 
-        let mut current_option = 0;
-        //let mut current_line = self.initial_line;
-        let mut has_selected = false;
+        let mut current_option = 0u16;
+        let stdout = io::stdout();
+        let mut handle = stdout.lock();
 
-        while !has_selected {
-            let start_position = 0;
-            // Clear only the part of the console where the options are displayed
-            for _ in 0..num_options + 1 {
-                let char_count = 80;
-                let space_char = ' ';
-                set_cursor_position(start_position, current_line);
-                println!("{:1$}", space_char, char_count);
-                current_line += 1;
-            }
+        loop {
+            handle.execute(Clear(ClearType::CurrentLine)).unwrap();
+            handle.execute(MoveTo(0, current_line)).unwrap();
 
-            // Draw the menu options witch a > in front of the selected option and highlight the selected option
-            // TODO: Find out why the up and down arrow keys are not working
+            // Draw the menu options with a > in front of the selected option
             for i in 0..num_options {
-                set_cursor_position(start_position, current_line);
-
                 if i == current_option {
-
-                    println!("> {}", self.options[i]);
+                    println!("> {}", self.options[i as usize]);
                 } else {
-                    println!("  {}", self.options[i]);
+                    println!("  {}", self.options[i as usize]);
                 }
-
-                current_line += 1;
             }
 
-            let mut user_input = String::new();
-            io::stdin().read_line(&mut user_input).expect("Failed to read user input");
-
-            if let Ok(event) = read() {
-                match event {
-                    Event::Key(KeyEvent {
-                                   code,
-                                   modifiers,
-                                   kind: _,
-                                   state: _,
-                               }) => {
-                        if modifiers == KeyModifiers::NONE {
-                            match code {
-                                KeyCode::Enter => {
-                                    has_selected = true;
-                                    match current_option {
-                                        0 => println!("Start Game"),
-                                        1 => println!("Exit"),
-                                        2 => println!("Tutorial"),
-                                        _ => println!("Invalid option"),
-                                    }
-                                }
-                                KeyCode::Up => {
-                                    if current_option > 0 {
-                                        current_option -= 1;
-                                    }
-                                }
-                                KeyCode::Down => {
-                                    if current_option < num_options - 1 {
-                                        current_option += 1;
-                                    }
-                                }
-                                _ => {}
+            // Handle user input
+            if event::poll(std::time::Duration::from_millis(100)).unwrap() {
+                if let Event::Key(key_event) = event::read().unwrap() {
+                    match key_event.code {
+                        KeyCode::Up => {
+                            if current_option > 0 {
+                                current_option -= 1;
                             }
                         }
+                        KeyCode::Down => {
+                            if current_option < num_options - 1 {
+                                current_option += 1;
+                            }
+                        }
+                        KeyCode::Enter => {
+                            println!("Selected option: {}", self.options[current_option as usize]);
+                            break;
+                        }
+                        _ => {}
                     }
-                    _ => {}
+                }
+
+                // Flush the input buffer
+                while event::poll(std::time::Duration::from_millis(0)).unwrap() {
+                    if let Event::Key(_) = event::read().unwrap() {
+                        // Discard the key event
+                    }
                 }
             }
 
-            //current_line = self.initial_line;
+            handle.flush().unwrap();
         }
     }
 }
@@ -139,6 +119,8 @@ fn draw_title_screen() {
     println!("   #     $    #   ##   # #  # #  # ## # # ");
     println!("   #          #   ##   # #  # #  # ##   # ");
     println!("   ############   ##   # #### #### ##   # ");
+    println!();
+    println!();
     println!();
     println!();
 }

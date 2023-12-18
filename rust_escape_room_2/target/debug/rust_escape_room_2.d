@@ -1,0 +1,1 @@
+E:\GitFork\RustEscapeRoom2.0\rust_escape_room_2\target\debug\rust_escape_room_2.exe: E:\GitFork\RustEscapeRoom2.0\rust_escape_room_2\src\application.rs E:\GitFork\RustEscapeRoom2.0\rust_escape_room_2\src\console.rs E:\GitFork\RustEscapeRoom2.0\rust_escape_room_2\src\main.rs E:\GitFork\RustEscapeRoom2.0\rust_escape_room_2\src\menu.rs
